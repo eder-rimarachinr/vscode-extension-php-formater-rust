@@ -2,7 +2,7 @@
     "name": "php-formatter-rust",
     "displayName": "PHP Formatter Rust",
     "description": "Fast PHP formatter with = and => alignment, written in Rust",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "publisher": "EderRimarachin",
     "license": "MIT",
     "repository": {
