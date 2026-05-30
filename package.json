@@ -4,6 +4,11 @@
   "description": "Fast PHP formatter with = and => alignment, written in Rust",
   "version": "0.2.0",
   "publisher": "local",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tu-usuario/php-formatter"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
