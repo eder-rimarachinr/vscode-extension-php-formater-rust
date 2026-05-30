@@ -9,6 +9,7 @@ interface BinaryRequest {
     command: 'format' | 'check';
     source: string;
     file_path?: string;
+    workspace_root?: string;
 }
 
 interface BinaryDiagnostic {
@@ -34,12 +35,43 @@ interface BinaryResponse {
 
 // ─── Binary invocation ────────────────────────────────────────────────────────
 
+// SEC-001: read only from global/machine settings — workspace settings cannot
+// override this, preventing a malicious .vscode/settings.json from redirecting
+// the binary to an arbitrary executable.
 function getBinaryPath(): string {
-    const custom = vscode.workspace.getConfiguration('phpFormatter').get<string>('binaryPath');
-    if (custom?.trim()) { return custom.trim(); }
+    const inspected = vscode.workspace.getConfiguration('phpFormatter').inspect<string>('binaryPath');
+    const custom = inspected?.globalValue ?? inspected?.defaultValue;
+    if (typeof custom === 'string' && custom.trim()) { return custom.trim(); }
     const ext = os.platform() === 'win32' ? '.exe' : '';
     return path.join(__dirname, '..', 'bin', `php_formatter${ext}`);
 }
+
+// SEC-006: resolve workspace root so the binary can stop config discovery there.
+function getWorkspaceRoot(uri: vscode.Uri): string | undefined {
+    return vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath;
+}
+
+// SEC-005: strip non-printable chars and cap length before showing to the user.
+function sanitizeError(raw: string): string {
+    return raw.replace(/[^\x20-\x7E\n]/g, '?').slice(0, 500);
+}
+
+// SEC-008: runtime validation — the "as BinaryResponse" cast is erased at
+// runtime, so we verify the fields we actually use before trusting them.
+function parseBinaryResponse(raw: string): BinaryResponse {
+    const resp = JSON.parse(raw);
+    if (typeof resp !== 'object' || resp === null) { throw new Error('Response is not an object'); }
+    if (typeof resp.ok !== 'boolean') { throw new Error('Missing field: ok'); }
+    if (resp.formatted !== undefined && typeof resp.formatted !== 'string') {
+        throw new Error('Invalid field: formatted');
+    }
+    if (!Array.isArray(resp.diagnostics)) { resp.diagnostics = []; }
+    return resp as BinaryResponse;
+}
+
+const MAX_STDOUT_BYTES = 50 * 1024 * 1024; // 50 MB — SEC-004
+const MAX_STDERR_BYTES =  1 * 1024 * 1024; //  1 MB — SEC-004
+const BINARY_TIMEOUT_MS = 30_000;           // 30 s  — SEC-003
 
 function callBinary(request: BinaryRequest): Promise<BinaryResponse> {
     return new Promise((resolve, reject) => {
@@ -47,18 +79,57 @@ function callBinary(request: BinaryRequest): Promise<BinaryResponse> {
         const proc = cp.spawn(binary, ['--json']);
         let stdout = '';
         let stderr = '';
+        let settled = false;
 
-        proc.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
-        proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
-        proc.on('error', (err: Error) => reject(new Error(`PHP Formatter binary not found: ${binary}\n${err.message}`)));
-        proc.on('close', (_code: number | null) => {
-            try {
-                const resp = JSON.parse(stdout) as BinaryResponse;
-                resp.ok ? resolve(resp) : reject(new Error(resp.error ?? 'Unknown error'));
-            } catch {
-                reject(new Error(`Invalid binary response: ${stdout || stderr}`));
+        function finish(fn: () => void): void {
+            if (settled) { return; }
+            settled = true;
+            clearTimeout(timer);
+            fn();
+        }
+
+        // SEC-003: kill the process if it doesn't respond in time.
+        const timer = setTimeout(() => {
+            finish(() => {
+                proc.kill();
+                reject(new Error('PHP Formatter: timed out after 30 s'));
+            });
+        }, BINARY_TIMEOUT_MS);
+
+        proc.stdout.on('data', (chunk: Buffer) => {
+            stdout += chunk.toString();
+            // SEC-004: hard limit to prevent OOM in the extension host.
+            if (stdout.length > MAX_STDOUT_BYTES) {
+                finish(() => {
+                    proc.kill();
+                    reject(new Error('PHP Formatter: response exceeded size limit'));
+                });
             }
         });
+
+        proc.stderr.on('data', (chunk: Buffer) => {
+            stderr += chunk.toString();
+            // SEC-004: ring-buffer stderr so it never grows unbounded.
+            if (stderr.length > MAX_STDERR_BYTES) {
+                stderr = stderr.slice(-MAX_STDERR_BYTES);
+            }
+        });
+
+        proc.on('error', (err: Error) => finish(() =>
+            reject(new Error(`PHP Formatter binary not found: ${binary}\n${err.message}`))
+        ));
+
+        proc.on('close', () => finish(() => {
+            try {
+                const resp = parseBinaryResponse(stdout); // SEC-008
+                // SEC-005: sanitize binary-controlled error before showing it.
+                resp.ok
+                    ? resolve(resp)
+                    : reject(new Error(`PHP Formatter: ${sanitizeError(resp.error ?? 'unknown error')}`));
+            } catch {
+                reject(new Error('PHP Formatter: invalid binary response (check binary path)'));
+            }
+        }));
 
         proc.stdin.write(JSON.stringify(request), 'utf8');
         proc.stdin.end();
@@ -89,7 +160,12 @@ async function runCheck(doc: vscode.TextDocument): Promise<void> {
         return;
     }
     try {
-        const resp = await callBinary({ command: 'check', source: doc.getText(), file_path: doc.uri.fsPath });
+        const resp = await callBinary({
+            command: 'check',
+            source: doc.getText(),
+            file_path: doc.uri.fsPath,
+            workspace_root: getWorkspaceRoot(doc.uri),
+        });
         const diags = resp.diagnostics.map(d => {
             const range = new vscode.Range(d.line, d.col, d.end_line, d.end_col);
             const diag = new vscode.Diagnostic(range, d.message, vscode.DiagnosticSeverity.Warning);
@@ -124,7 +200,12 @@ async function formatFiles(
         try {
             const bytes = await vscode.workspace.fs.readFile(uri);
             const source = Buffer.from(bytes).toString('utf8');
-            const resp = await callBinary({ command: 'format', source, file_path: uri.fsPath });
+            const resp = await callBinary({
+                command: 'format',
+                source,
+                file_path: uri.fsPath,
+                workspace_root: getWorkspaceRoot(uri),
+            });
             if (resp.changed && resp.formatted) {
                 await vscode.workspace.fs.writeFile(uri, Buffer.from(resp.formatted, 'utf8'));
                 changed++;
@@ -153,7 +234,12 @@ export function activate(context: vscode.ExtensionContext): void {
     sub.push(vscode.languages.registerDocumentFormattingEditProvider('php', {
         async provideDocumentFormattingEdits(doc): Promise<vscode.TextEdit[]> {
             try {
-                const resp = await callBinary({ command: 'format', source: doc.getText(), file_path: doc.uri.fsPath });
+                const resp = await callBinary({
+                    command: 'format',
+                    source: doc.getText(),
+                    file_path: doc.uri.fsPath,
+                    workspace_root: getWorkspaceRoot(doc.uri),
+                });
                 if (!resp.formatted || !resp.changed) { return []; }
                 showTiming(resp.timing_ms);
                 const full = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
@@ -170,7 +256,12 @@ export function activate(context: vscode.ExtensionContext): void {
         if (event.document.languageId !== 'php') { return; }
         if (!vscode.workspace.getConfiguration('phpFormatter').get<boolean>('formatOnSave')) { return; }
         event.waitUntil(
-            callBinary({ command: 'format', source: event.document.getText(), file_path: event.document.uri.fsPath })
+            callBinary({
+                command: 'format',
+                source: event.document.getText(),
+                file_path: event.document.uri.fsPath,
+                workspace_root: getWorkspaceRoot(event.document.uri),
+            })
                 .then(resp => {
                     if (!resp.formatted || !resp.changed) { return []; }
                     showTiming(resp.timing_ms);
@@ -203,9 +294,15 @@ export function activate(context: vscode.ExtensionContext): void {
         }
         const doc = editor.document;
         try {
-            const resp = await callBinary({ command: 'format', source: doc.getText(), file_path: doc.uri.fsPath });
+            const resp = await callBinary({
+                command: 'format',
+                source: doc.getText(),
+                file_path: doc.uri.fsPath,
+                workspace_root: getWorkspaceRoot(doc.uri),
+            });
             previewMap.set(doc.uri.path, resp.formatted ?? doc.getText());
-            const previewUri = vscode.Uri.parse(`${PREVIEW_SCHEME}:${doc.uri.path}`);
+            // SEC-002: use Uri.from() to avoid authority injection with UNC paths.
+            const previewUri = vscode.Uri.from({ scheme: PREVIEW_SCHEME, path: doc.uri.path });
             await vscode.commands.executeCommand(
                 'vscode.diff', doc.uri, previewUri,
                 `${path.basename(doc.uri.fsPath)}  ↔  PHP Formatter Preview`
@@ -225,7 +322,12 @@ export function activate(context: vscode.ExtensionContext): void {
         }
         try {
             const source = editor.document.getText(editor.selection);
-            const resp = await callBinary({ command: 'format', source, file_path: editor.document.uri.fsPath });
+            const resp = await callBinary({
+                command: 'format',
+                source,
+                file_path: editor.document.uri.fsPath,
+                workspace_root: getWorkspaceRoot(editor.document.uri),
+            });
             if (!resp.formatted || !resp.changed) { return; }
             await editor.edit(b => b.replace(editor.selection, resp.formatted!));
             showTiming(resp.timing_ms);
