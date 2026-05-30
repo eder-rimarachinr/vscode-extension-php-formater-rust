@@ -1,0 +1,81 @@
+{
+  "name": "php-formatter",
+  "displayName": "PHP Formatter",
+  "description": "Fast PHP formatter with = and => alignment, written in Rust",
+  "version": "0.2.0",
+  "publisher": "local",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Formatters"],
+  "activationEvents": ["onLanguage:php"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "php",
+        "extensions": [".php"]
+      }
+    ],
+    "commands": [
+      {
+        "command": "phpFormatter.previewFormat",
+        "title": "PHP Formatter: Preview Format"
+      },
+      {
+        "command": "phpFormatter.formatSelection",
+        "title": "PHP Formatter: Format Selection"
+      },
+      {
+        "command": "phpFormatter.formatWorkspace",
+        "title": "PHP Formatter: Format All PHP Files in Workspace"
+      },
+      {
+        "command": "phpFormatter.formatFolder",
+        "title": "PHP Formatter: Format PHP Files in Folder"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "phpFormatter.formatFolder",
+          "when": "explorerResourceIsFolder",
+          "group": "1_modification"
+        }
+      ],
+      "commandPalette": [
+        { "command": "phpFormatter.formatFolder", "when": "false" }
+      ]
+    },
+    "configuration": {
+      "title": "PHP Formatter",
+      "properties": {
+        "phpFormatter.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to php_formatter binary. Leave empty to use the bundled binary."
+        },
+        "phpFormatter.formatOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Format PHP files automatically on save."
+        },
+        "phpFormatter.diagnostics": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show formatting violations in the Problems panel (requires a PHP file to be open)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.24.0",
+    "typescript": "^5.3.0"
+  }
+}
