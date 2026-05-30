@@ -10,7 +10,6 @@
 # The extension verifies this file at activation (FIX-5 / SEC-001 defense-in-depth).
 # Commit updated checksums together with the new binary in every release PR.
 #
-# ── v0.2.0 ────────────────────────────────────────────────────────────────────
-# Replace the placeholder lines below with real hashes from the CI release job.
-0000000000000000000000000000000000000000000000000000000000000000  php_formatter.exe
+# ── v0.3.2 ────────────────────────────────────────────────────────────────────
+685616cae93abbfc28e2418bf1dd18b3ae486603c81ba877220397d772d777ea  php_formatter.exe
 0000000000000000000000000000000000000000000000000000000000000000  php_formatter

@@ -2,7 +2,7 @@
 
 PHP Formatter formats your PHP files using a native Rust binary — no Node.js dependencies, no PHP runtime required.
 
-[![Version](https://img.shields.io/badge/version-0.3.2-blue)](https://github.com/eder-rimarachinr/vscode-extension-php-formater-rust/releases)
+[![Version](https://img.shields.io/badge/version-0.3.3-blue)](https://github.com/eder-rimarachinr/vscode-extension-php-formater-rust/releases)
 [![VSCode](https://img.shields.io/badge/VSCode-1.85%2B-007ACC?logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/)
 ![License](https://img.shields.io/badge/license-MIT-green)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#supported-platforms)
@@ -331,6 +331,10 @@ echo '{"command":"check","source":"<?php $a=1;\n"}' | php_formatter --json
 ---
 
 ## Changelog
+
+### v0.3.3
+
+- Fixed binary integrity check (checksums.txt had placeholder hashes)
 
 ### v0.3.2
 
