@@ -1,0 +1,12 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "types": ["node", "jest"]
+    },
+    "include": [
+        "src/__tests__/**/*.ts",
+        "src/security.ts",
+        "src/integrity.ts",
+        "src/webview.ts"
+    ]
+}

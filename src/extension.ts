@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as path from 'path';
 import * as os from 'os';
+import { validatePath } from './security';
+import { verifyBinaryIntegrity } from './integrity';
 
 // ─── Protocol types ───────────────────────────────────────────────────────────
 
@@ -51,6 +53,13 @@ function getWorkspaceRoot(uri: vscode.Uri): string | undefined {
     return vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath;
 }
 
+// FIX-1: VS Code wrapper — collects workspace roots and delegates to the pure
+// validatePath() so the core logic is unit-testable without a running host.
+function validateWorkspacePath(filePath: string): string {
+    const roots = vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath) ?? [];
+    return validatePath(filePath, roots);
+}
+
 // SEC-005: strip non-printable chars and cap length before showing to the user.
 function sanitizeError(raw: string): string {
     return raw.replace(/[^\x20-\x7E\n]/g, '?').slice(0, 500);
@@ -74,8 +83,19 @@ const MAX_STDERR_BYTES =  1 * 1024 * 1024; //  1 MB — SEC-004
 const BINARY_TIMEOUT_MS = 30_000;           // 30 s  — SEC-003
 
 function callBinary(request: BinaryRequest): Promise<BinaryResponse> {
+    // FIX-1: reject immediately if file_path escapes the workspace boundary.
+    if (request.file_path) {
+        try {
+            request = { ...request, file_path: validateWorkspacePath(request.file_path) };
+        } catch (err) {
+            return Promise.reject(err);
+        }
+    }
+
     return new Promise((resolve, reject) => {
         const binary = getBinaryPath();
+        // FIX-2: spawn uses an explicit args array — never {shell:true} or string
+        // concatenation, so spaces in `binary` and args cannot become shell injection.
         const proc = cp.spawn(binary, ['--json']);
         let stdout = '';
         let stderr = '';
@@ -219,7 +239,20 @@ async function formatFiles(
 
 // ─── Activation ───────────────────────────────────────────────────────────────
 
-export function activate(context: vscode.ExtensionContext): void {
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
+    // FIX-5: verify the bundled binary hasn't been tampered with before accepting
+    // any formatting requests. Silently skips when checksums.txt is absent (dev mode).
+    const binaryPath = getBinaryPath();
+    const checksumsPath = path.join(__dirname, '..', 'bin', 'checksums.txt');
+    try {
+        await verifyBinaryIntegrity(binaryPath, checksumsPath);
+    } catch (err: unknown) {
+        vscode.window.showErrorMessage(
+            `PHP Formatter security error: ${(err as Error).message}`
+        );
+        return; // abort activation — no commands or providers are registered
+    }
+
     const sub = context.subscriptions;
 
     // Status bar item

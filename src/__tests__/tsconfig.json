@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "ES2020",
+        "lib": ["ES2020"],
+        "types": ["node", "jest"],
+        "strict": true,
+        "esModuleInterop": true
+    },
+    "include": ["./**/*.ts", "../security.ts", "../integrity.ts", "../webview.ts"]
+}

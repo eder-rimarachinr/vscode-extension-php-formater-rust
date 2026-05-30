@@ -4,15 +4,23 @@
   "description": "Fast PHP formatter with = and => alignment, written in Rust",
   "version": "0.2.0",
   "publisher": "local",
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Formatters"],
-  "activationEvents": ["onLanguage:php"],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Formatters"
+  ],
+  "activationEvents": [
+    "onLanguage:php"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "languages": [
       {
         "id": "php",
-        "extensions": [".php"]
+        "extensions": [
+          ".php"
+        ]
       }
     ],
     "commands": [
@@ -42,7 +50,10 @@
         }
       ],
       "commandPalette": [
-        { "command": "phpFormatter.formatFolder", "when": "false" }
+        {
+          "command": "phpFormatter.formatFolder",
+          "when": "false"
+        }
       ]
     },
     "configuration": {
@@ -73,9 +84,12 @@
     "package": "vsce package"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^2.24.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
     "typescript": "^5.3.0"
   }
 }
