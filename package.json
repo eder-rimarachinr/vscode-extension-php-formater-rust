@@ -1,5 +1,5 @@
 {
-  "name": "php-formatter",
+  "name": "php-formatter-rust",
   "displayName": "PHP Formatter",
   "description": "Fast PHP formatter with = and => alignment, written in Rust",
   "version": "0.3.0",
