@@ -1,100 +1,101 @@
 {
-  "name": "php-formatter-rust",
-  "displayName": "PHP Formatter Rust",
-  "description": "Fast PHP formatter with = and => alignment, written in Rust",
-  "version": "0.3.0",
-  "publisher": "EderRimarachin",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/eder-rimarachinr/vscode-extension-php-formater-rust"
-  },
-  "engines": {
-    "vscode": "^1.85.0"
-  },
-  "categories": [
-    "Formatters"
-  ],
-  "activationEvents": [
-    "onLanguage:php"
-  ],
-  "main": "./out/extension.js",
-  "contributes": {
-    "languages": [
-      {
-        "id": "php",
-        "extensions": [
-          ".php"
-        ]
-      }
-    ],
-    "commands": [
-      {
-        "command": "phpFormatter.previewFormat",
-        "title": "PHP Formatter: Preview Format"
-      },
-      {
-        "command": "phpFormatter.formatSelection",
-        "title": "PHP Formatter: Format Selection"
-      },
-      {
-        "command": "phpFormatter.formatWorkspace",
-        "title": "PHP Formatter: Format All PHP Files in Workspace"
-      },
-      {
-        "command": "phpFormatter.formatFolder",
-        "title": "PHP Formatter: Format PHP Files in Folder"
-      }
-    ],
-    "menus": {
-      "explorer/context": [
-        {
-          "command": "phpFormatter.formatFolder",
-          "when": "explorerResourceIsFolder",
-          "group": "1_modification"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "phpFormatter.formatFolder",
-          "when": "false"
-        }
-      ]
+    "name": "php-formatter-rust",
+    "displayName": "PHP Formatter Rust",
+    "description": "Fast PHP formatter with = and => alignment, written in Rust",
+    "version": "0.3.1",
+    "publisher": "EderRimarachin",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/eder-rimarachinr/vscode-extension-php-formater-rust"
     },
-    "configuration": {
-      "title": "PHP Formatter",
-      "properties": {
-        "phpFormatter.binaryPath": {
-          "type": "string",
-          "default": "",
-          "description": "Absolute path to php_formatter binary. Leave empty to use the bundled binary."
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "Formatters"
+    ],
+    "activationEvents": [
+        "onLanguage:php"
+    ],
+    "icon": "images/icon.png",
+    "main": "./out/extension.js",
+    "contributes": {
+        "languages": [
+            {
+                "id": "php",
+                "extensions": [
+                    ".php"
+                ]
+            }
+        ],
+        "commands": [
+            {
+                "command": "phpFormatter.previewFormat",
+                "title": "PHP Formatter: Preview Format"
+            },
+            {
+                "command": "phpFormatter.formatSelection",
+                "title": "PHP Formatter: Format Selection"
+            },
+            {
+                "command": "phpFormatter.formatWorkspace",
+                "title": "PHP Formatter: Format All PHP Files in Workspace"
+            },
+            {
+                "command": "phpFormatter.formatFolder",
+                "title": "PHP Formatter: Format PHP Files in Folder"
+            }
+        ],
+        "menus": {
+            "explorer/context": [
+                {
+                    "command": "phpFormatter.formatFolder",
+                    "when": "explorerResourceIsFolder",
+                    "group": "1_modification"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "phpFormatter.formatFolder",
+                    "when": "false"
+                }
+            ]
         },
-        "phpFormatter.formatOnSave": {
-          "type": "boolean",
-          "default": false,
-          "description": "Format PHP files automatically on save."
-        },
-        "phpFormatter.diagnostics": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show formatting violations in the Problems panel (requires a PHP file to be open)."
+        "configuration": {
+            "title": "PHP Formatter",
+            "properties": {
+                "phpFormatter.binaryPath": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Absolute path to php_formatter binary. Leave empty to use the bundled binary."
+                },
+                "phpFormatter.formatOnSave": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Format PHP files automatically on save."
+                },
+                "phpFormatter.diagnostics": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Show formatting violations in the Problems panel (requires a PHP file to be open)."
+                }
+            }
         }
-      }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "package": "vsce package"
+    },
+    "devDependencies": {
+        "@types/jest": "^30.0.0",
+        "@types/node": "^20.0.0",
+        "@types/vscode": "^1.85.0",
+        "@vscode/vsce": "^2.24.0",
+        "jest": "^30.4.2",
+        "ts-jest": "^29.4.11",
+        "typescript": "^5.3.0"
     }
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "package": "vsce package"
-  },
-  "devDependencies": {
-    "@types/jest": "^30.0.0",
-    "@types/node": "^20.0.0",
-    "@types/vscode": "^1.85.0",
-    "@vscode/vsce": "^2.24.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.4.11",
-    "typescript": "^5.3.0"
-  }
 }

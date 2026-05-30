@@ -332,6 +332,24 @@ echo '{"command":"check","source":"<?php $a=1;\n"}' | php_formatter --json
 
 ## Changelog
 
+### v0.3.1
+
+- Added extension icon
+
+### v0.3.0
+
+- JSON protocol between extension and binary (`--json` mode)
+- `=>` alignment for arrays and `match` expressions
+- Inline `//` comment alignment in consecutive blocks
+- `@fmt-off` / `@fmt-on` region exclusion (PhpStorm `@formatter:off` also supported)
+- Format on save (`phpFormatter.formatOnSave`)
+- Preview diff before applying (`PHP Formatter: Preview Format`)
+- Format selection
+- Per-project `.phpfmt.toml` configuration with full validation
+- Problems panel diagnostics with Quick Fix (`phpFormatter.diagnostics`)
+- Bulk format: workspace and folder (`PHP Formatter: Format All PHP Files in Workspace`)
+- Status bar timing (`⌚ PHP fmt: Nms`)
+
 ### v0.1.0 — Initial release
 
 - `=` alignment for consecutive assignment blocks
@@ -342,15 +360,7 @@ echo '{"command":"check","source":"<?php $a=1;\n"}' | php_formatter --json
 
 ### Upcoming
 
-- `=>` alignment for arrays and `match` expressions *(in progress)*
-- Inline `//` comment alignment *(in progress)*
-- `@fmt-off` / `@fmt-on` region exclusion *(in progress)*
-- Format on save *(in progress)*
-- Preview diff before applying *(in progress)*
-- Per-project `.phpfmt.toml` configuration *(in progress)*
-- Problems panel diagnostics with Quick Fix *(in progress)*
-- Bulk format (workspace / folder) *(in progress)*
-- macOS and Linux binaries
+- macOS and Linux bundled binaries
 
 ---
 
